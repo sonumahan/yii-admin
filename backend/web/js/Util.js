@@ -269,8 +269,9 @@ var Util = {
                             for(var i=0;i<statusA.length;i++) {
                                 fCon += '<option value="'+statusA[i]+'">'+statusA[i]+'</option>';
                             }
-                        }else if(index === "state" && typeof data.state !== "undefined") {
-                            $.each(data.state,function(sIn,sVal) {
+                        }else if(index === "state" && (typeof data.state !== "undefined" || typeof data.states !== "undefined")) {
+                            var state = (typeof data.states !== "undefined") ? data.states : data.state;
+                            $.each(state,function(sIn,sVal) {
                                 fCon += '<option value="'+sVal.state_code+'">'+sVal.state_name+'</option>';
                             });
                         }else if((index === "region" || index === "region_id") && typeof data.regions !== "undefined") {
@@ -414,8 +415,9 @@ var Util = {
                                 var selected = (statusA[i] === data[index]) ? ' selected="selected"' : "";
                                 fCon += '<option value="'+statusA[i]+'"'+selected+'>'+statusA[i]+'</option>';
                             }
-                        }else if(index === "state" && typeof data.state !== "undefined") {
-                            $.each(data.state,function(sIn,sVal) {
+                        }else if(index === "state" && (typeof data.state !== "undefined" || typeof data.states !== "undefined")) {
+                            var state = (typeof data.states !== "undefined") ? data.states : data.state;
+                            $.each(state,function(sIn,sVal) {
                                 var selected = (sVal.state_code === data[index]) ? ' selected="selected"' : "";
                                 fCon += '<option value="'+sVal.state_code+'"'+selected+'>'+sVal.state_name+'</option>';
                             });
@@ -466,6 +468,10 @@ var Util = {
         }
         if(typeof extraData.autocomplete !== "undefined") {
             Util._registerAutoComplete(extraData.autocomplete);
+        }
+        
+        if(typeof extraData.date_picker !== "undefined") {
+            Util._registerDatePicker(extraData.date_picker)
         }
         
     },
@@ -543,6 +549,15 @@ var Util = {
             });
         })
         
+    },
+    _registerDatePicker : function(data) {
+        $.each(data, function(i,value) {
+            $("#"+value.divID).find("#"+value.inputID).datepicker({
+                dateFormat: 'yy-mm-dd',
+                changeMonth: true,
+                changeYear: true
+            });
+        });
     },
     _applicationStatus : function(status) {
         
@@ -622,6 +637,19 @@ var Util = {
     _dropDownFilter : function(value,fieldName,formName,url,method) {
         $("#"+formName).find("#"+fieldName).val(value);
         Util._ajax(url,"GET","json",$("#"+formName).serialize(),"",method);
+    },
+    _removeData : function(divID,module,id,url) {
+        var ids = "#"+module+"_"+id;
+        var obj = $("#"+divID).find(ids);
+        if(confirm("Are you sure to delete?")) {
+            Util._ajax(url+"/"+id,"DELETE","json","","",function(data) {
+                if(typeof data.status !== "undefined") {
+                    obj.remove();
+                }else {
+                    alert("Please try after some time!");
+                }
+            });
+        }
     }
 };
 
@@ -669,7 +697,7 @@ var DonationForm = {
         content += headerCon;
         
         $.each(data.forms,function(i,value) {
-            content += '<tr>';
+            content += '<tr id="donation_'+value.id+'">';
             var partner = (typeof value.partner !== "undefined") ? value.partner.organization_name : "";
             content += "<td>"+partner+"</td>";
             content += "<td>"+value.title+"</td>";
@@ -714,6 +742,7 @@ var HomePageSlide = {
 			"title" : {"label": "Title","sort":"yes"},
 			"sequence" : {"label":"Sequence","sort": "yes"},
 			"slide_ulr" : {"label":"Slide Url","sort":"yes"},
+                        "filename" : {"label": "Slide Image","sort":"no"},
 			"action" : {"label" : "Action","sort":"no"}
 		};
 		var content = "";
@@ -724,13 +753,82 @@ var HomePageSlide = {
 			content += "<td>"+value.title+"</td>";
 			content += "<td>"+value.sequence+"</td>";
 			content += "<td>"+value.slide_ulr+"</td>";
-			content += "<td>&nbsp;</td>";
+                        var image = (value.s3_iamge_url !== "no") ? '<img src="'+value.s3_iamge_url+'" />' : "";
+                        content += "<td>"+image+"</td>";
+			content += "<td><a href='/admin/homepageslide/edit/"+value.id+"'><i class='fa fa-edit'></i></a></td>";
 			content += "</tr>";
 		});
 		var paging = Util._createPagination(data.current_page,data.total_page,'home_page_slides','homeSlideFom','HomePageSlide._handle');
-        content += '<tr><td colspan="4">'+paging+'</td></tr>';
+        content += '<tr><td colspan="5">'+paging+'</td></tr>';
 		$("#homeSlide table").html(content);
 	}
+};
+
+var Donation = {
+    _handle : function(data,extraData) {
+        var fieldAr = {
+            "first_name" : {"label":"First Name","sort":"yes"},
+            "last_name" : {"label":"Last Name","sort":"yes"},
+            "partners.organization_name" : {"label":"Partner","sort":"yes"},
+            "partner_donations.date_added" : {"label":"Donation Date","sort":"yes"},
+            "amount" : {"label":"Amount","sort":"yes"},
+            "paypal_fee" : {"label":"Paypal Fee","sort":"yes"},
+            "omp_fee" : {"label":"Omp Fee","sort":"yes"},
+            "Transaction_no" : {"label":"Transaction No","sort":"yes"},
+            "paypal_id" : {"label":"Paypal Id","sort":"yes"},
+            "action" : {"label" : "Action","sort":"no"}
+            
+        };
+        
+        var content = "";
+        var heading = Util._processHeader(fieldAr,"donationListingForm","donations",data.sort,data.sort_by,"Donation._handle");
+        content += heading;
+        $.each(data.donations,function(i,value) {
+            content += "<tr id='donation_"+value.id+"'>";
+            content += "<td>"+value.first_name+"</td>";
+            content += "<td>"+value.last_name+"</td>";
+            var partner = (typeof value.partner !== "undefined") ? value.partner.organization_name : "";
+            content += "<td>"+partner+"</td>";
+            content += "<td>"+Util._formatDate(value.date_added)+"</td>";
+            content += "<td>"+value.amount+"</td>";
+            content += "<td>"+value.paypal_fee+"</td>";
+            content += "<td>"+value.omp_fee+"</td>";
+            content += "<td>"+value.Transaction_no+"</td>";
+            content += "<td>"+value.paypal_id+"</td>";
+            content += "<td><a href='/admin/donation/edit/"+value.id+"'><i class='fa fa-edit'></i></a></td>";
+            content += "</tr>";
+        });
+        var paging = Util._createPagination(data.current_page,data.total_page,'donations','donationListingForm','Donation._handle');
+        content += '<tr><td colspan="10">'+paging+'</td></tr>';
+        $("#donationListing table").html(content);
+    }
+};
+
+var Transfer = {
+    _handle : function(data,extraData) {
+        var fieldAr = {
+            "partners.organization_name": {"label":"Partner","sort":"yes"},
+            "debit" : {"label": "Transfer Amount","sort":"yes"},
+            "payments_made.date_added" : {"label":"Transfer Date","sort":"yes"},
+            "action" : {"label": "Action","sort":"no"}
+        };
+        
+        var content = "";
+        var heading = Util._processHeader(fieldAr,"transferListingForm","transfers",data.sort,data.sort_by,"Transfer._handle");
+        content += heading;
+        $.each(data.transfers,function(i,value) {
+            content += "<tr id='transfer_"+value.id+"'>";
+            var partner = (typeof value.partner !== "undefined") ? value.partner.organization_name : "";
+            content += '<td>'+partner+'</td>';
+            content += '<td>'+value.debit+'</td>';
+            content += '<td>'+Util._formatDate(value.created_at)+'</td>';
+            content += '<td><a href="/admin/transfer/edit/'+value.id+'"><i class="fa fa-edit"></i></a><a href="javascript:void(0)"><i class="fa fa-trash-o" onclick="Util._removeData(\'transferListing\',\'transfer\','+value.id+',\'transfers\')"></i></a></td>';
+            content += "</tr>";
+        });
+        var paging = Util._createPagination(data.current_page,data.total_page,'transfers','transferListingForm','Transfer._handle');
+        content += '<tr><td colspan="4">'+paging+'</td></tr>';
+        $("#transferListing table").html(content);
+    }
 };
 
 

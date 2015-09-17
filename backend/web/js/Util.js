@@ -801,6 +801,41 @@ var Donation = {
         var paging = Util._createPagination(data.current_page,data.total_page,'donations','donationListingForm','Donation._handle');
         content += '<tr><td colspan="10">'+paging+'</td></tr>';
         $("#donationListing table").html(content);
+    },
+    _summary : function(data,extraData) {
+        var fieldAr = {
+            "partners.organization_name" : {"label" : "Partner","sort" : "yes"},
+            "sum_amount" : {"label" : "Total Earmarked Donations","sort" : "yes"},
+            "sum_paypal_fee" : {"label" : "Total Paypal Fees","sort" : "yes"},
+            "sum_omp_fee" : {"label" : "Total Omprakash Fees","sort" : "yes"},
+            "net_donation" : {"label" : "Total Net Donations","sort" : "yes"},
+            "sum_debit" : {"label" : "Total Past Transfers","sort" : "no"},
+            "balance" : {"label" : "Current_Balance","sort" : "no"}
+         };
+         $("#totalEarn .box-body").html("<strong>$"+data.amount_sum+"</strong>");
+         $("#totalPaypalFee .box-body").html("<strong>$"+data.paypal_sum+"</strong>");
+         $("#totalOmpFee .box-body").html("<strong>$"+data.omp_fee_sum+"</strong>");
+         $("#pastRans .box-body").html("<strong>$"+data.transfer_sum+"</strong>");
+         $("#allBalance .box-body").html("<strong>$"+data.transfer_sum+"</strong>");
+         
+         var content = "";
+        var heading = Util._processHeader(fieldAr,"summaryForm","donations/financial_summary",data.sort,data.sort_by,"Donation._summary");
+        content += heading;
+        
+        $.each(data.finance,function(i,value) {
+            content += "<tr>";
+            content += "<td>"+value.partner+"</td>";
+            content += "<td>"+value.amount+"</td>";
+            content += "<td>"+value.paypal_fee+"</td>";
+            content += "<td>"+value.omp_fee+"</td>";
+            content += "<td>"+value.net_donation+"</td>";
+            var debit = (typeof data["debit"][value.partner_id] !== "undefined") ? data["debit"][value.partner_id]["sum_debit"] : "0.00";
+            content += "<td>"+debit+"</td>";
+            content += "<td>"+parseFloat(value.amount - value.paypal_fee - value.omp_fee - debit)+"</td>";
+            content += "</tr>";
+        });
+        
+        $("#financialSummary table").html(content);
     }
 };
 
@@ -828,6 +863,37 @@ var Transfer = {
         var paging = Util._createPagination(data.current_page,data.total_page,'transfers','transferListingForm','Transfer._handle');
         content += '<tr><td colspan="4">'+paging+'</td></tr>';
         $("#transferListing table").html(content);
+    }
+};
+
+var Receipts = {
+    _handle : function(data,extraData) {
+        var fieldAr = {
+            "partners.organization_name" : {"label" : "Partner","sort" : "yes"},
+            "title" : {"label" : "Title","sort": "yes"},
+            "category" : {"label":"Category","sort":"yes"},
+            "amount" : {"label" : "Amount","sort" : "yes"},
+            "date_added" : {"label" : "Receipt Date","sort" : "yes"},
+            "action" : {"label" : "Action", "sort" : "no"}
+        };
+        
+        var content = "";
+        var heading = Util._processHeader(fieldAr,"receiptForm","receipts",data.sort,data.sort_by,"Receipts._handle");
+        content += heading;
+        $.each(data.receipts, function(i,value) {
+            content += "<tr id='receipt_"+value.id+"'>";
+            var partner = (typeof value.partner !== "undefined") ? value.partner.organization_name : "";
+            content += "<td>"+partner+"</td>";
+            content += "<td>"+value.title+"</td>";
+            content += "<td>"+value.category+"</td>";
+            content += "<td>"+value.amount+"</td>";
+            content += "<td>"+Util._formatDate(value.date_added)+"</td>";
+            content += "<td><a href='/admin/receipt/edit/"+value.id+"'><i class='fa fa-edit'></i></a><a href='javascript:void(0)' onclick='Util._removeData(\"expenseReceipt\",\"receipt\","+value.id+",\"receipts\")'><i class='fa fa-trash-o'></i></a></td>";
+            content += "</tr>";
+        });
+        var paging = Util._createPagination(data.current_page,data.total_page,'receipts','receiptForm','Receipts._handle');
+        content += '<tr><td colspan="6">'+paging+'</td></tr>';
+        $("#expenseReceipt table").html(content);
     }
 };
 

@@ -1,11 +1,9 @@
 <?php
 
 namespace backend\controllers;
-
 use Yii;
 use backend\components\Controller;
-
-class DonationController extends Controller
+class ReceiptController extends Controller
 {
     public function actionIndex()
     {
@@ -18,10 +16,6 @@ class DonationController extends Controller
     
     public function actionAdd() {
         return $this->render("add");
-    }
-    
-    public function actionSummary() {
-        return $this->render("summary");
     }
 
 }

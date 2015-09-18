@@ -641,8 +641,9 @@ var Util = {
     _removeData : function(divID,module,id,url) {
         var ids = "#"+module+"_"+id;
         var obj = $("#"+divID).find(ids);
+        var newUrl = (url.indexOf("/") != -1) ? url : url+"/"+id;
         if(confirm("Are you sure to delete?")) {
-            Util._ajax(url+"/"+id,"DELETE","json","","",function(data) {
+            Util._ajax(newUrl,"DELETE","json","","",function(data) {
                 if(typeof data.status !== "undefined") {
                     obj.remove();
                 }else {
@@ -894,6 +895,93 @@ var Receipts = {
         var paging = Util._createPagination(data.current_page,data.total_page,'receipts','receiptForm','Receipts._handle');
         content += '<tr><td colspan="6">'+paging+'</td></tr>';
         $("#expenseReceipt table").html(content);
+    }
+};
+
+var PartnerStory = {
+    _handle : function(data,extraData) {
+        var fieldAr = {
+            "partners.organization_name": {"label":"Partner","sort" : "yes"},
+            "title" : {"label" : "Title","sort": "yes"},
+            "stub" : {"label": "Story Url","sort":"yes"},
+            "date_added" : {"label" : "Story Date", "sort" : "yes"},
+            "action" : {"label" : "Action","sort" : "no"}
+        };
+        
+        var content = "";
+        var heading = Util._processHeader(fieldAr,"storyForm","stories/partners",data.sort,data.sort_by,"PartnerStory._handle");
+        content += heading;
+        
+        $.each(data.stories,function(i,value) {
+            content += "<tr id='story_"+value.id+"'>";
+            content += "<td>"+value.organization_name+"</td>";
+            content += "<td>"+value.title+"</td>";
+            content += "<td>"+value.stub+"</td>";
+            content += "<td>"+Util._formatDate(value.date_added)+"</td>";
+            var edit = (value.blog_type === "old") ? "<a href='/admin/story/edit/"+value.id+"'><i class='fa fa-edit'></i></a>" : "";
+            content += "<td>"+edit+"<a href='javascript:void(0)' onclick='Util._removeData(\"partnerStories\",\"story\","+value.id+",\"stories/"+value.id+"/partner_story_delete\")'><i class='fa fa-trash-o'></i></a></td>";
+            content += "</tr>";
+        });
+        
+        var paging = Util._createPagination(data.current_page,data.total_page,'stories/partners','storyForm','PartnerStory._handle');
+        content += '<tr><td colspan="5">'+paging+'</td></tr>';
+        $("#partnerStories table").html(content);
+    }
+};
+
+var Team = {
+    _handle : function(data,extraData) {
+        var fieldAr = {
+            "name" : {"label" : "Name","sort":"yes"},
+            "role" : {"label" : "Role","sort":"yes"},
+            "email" : {"label" : "Email","sort" : "yes"},
+            "skype" : {"label" : "Skype", "sort" : "yes"},
+            "action" : {"label" : "Action", "sort" : "no"}
+        };
+        
+        var content = "";
+        var heading = Util._processHeader(fieldAr,"teamForm","team",data.sort,data.sort_by,"Team._handle");
+        content += heading;
+        
+        $.each(data.teams,function(i,value){
+            content += "<tr id='team_"+value.id+"'>";
+            content += "<td>"+value.name+"</td>";
+            content += "<td>"+value.role+"</td>";
+            content += "<td>"+value.email+"</td>";
+            content += "<td>"+value.skype+"</td>";
+            content += "<td><a href='/admin/team/edit/"+value.id+"'><i class='fa fa-edit'></i></a><a href='javascript:void(0)' onclick='Util._removeData(\"team\",\"team\","+value.id+",\"team\")'><i class='fa fa-trash-o'></i></a></td>";
+            content += "</tr>";
+        });
+        
+        $("#team table").html(content);
+    }
+};
+
+var Board = {
+    _handle : function(data,extraData) {
+        var fieldAr = {
+            "name" : {"label" : "Name","sort":"yes"},
+            "role" : {"label" : "Role","sort":"yes"},
+            "email" : {"label" : "Email","sort" : "yes"},
+            "skype" : {"label" : "Skype", "sort" : "yes"},
+            "action" : {"label" : "Action", "sort" : "no"}
+        };
+        
+        var content = "";
+        var heading = Util._processHeader(fieldAr,"teamForm","board",data.sort,data.sort_by,"Board._handle");
+        content += heading;
+        
+        $.each(data.boards,function(i,value){
+            content += "<tr id='team_"+value.id+"'>";
+            content += "<td>"+value.name+"</td>";
+            content += "<td>"+value.role+"</td>";
+            content += "<td>"+value.email+"</td>";
+            content += "<td>"+value.skype+"</td>";
+            content += "<td><a href='/admin/board/edit/"+value.id+"'><i class='fa fa-edit'></i></a><a href='javascript:void(0)' onclick='Util._removeData(\"team\",\"team\","+value.id+",\"board\")'><i class='fa fa-trash-o'></i></a></td>";
+            content += "</tr>";
+        });
+        
+        $("#team table").html(content);
     }
 };
 

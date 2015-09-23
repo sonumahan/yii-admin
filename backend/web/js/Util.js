@@ -79,7 +79,7 @@ var Util = {
         
         $.each(data.artists,function(index,value) {
             content += "<tr id='prtner_"+value.id+"'>";
-                content += '<td>'+value.organization_name+'</td>';
+                content += '<td><a href="/admin/partner/view/'+value.id+'">'+value.organization_name+'</a></td>';
                 content += '<td>'+value.username+'</td>';
                 content += '<td>'+value.active_status+'</td>';
                 content += '<td>'+value.last_login+'</td>';
@@ -982,6 +982,194 @@ var Board = {
         });
         
         $("#team table").html(content);
+    }
+};
+
+var Resource = {
+    _handle : function(data,extraData) {
+        var fieldAr = {
+            "partners.organization_name" : {"label" : "Partner","sort" : "yes"},
+            "volunteers.first_name" : {"label" : "Volunteer","sort" : "yes"},
+            "title" : {"label" : "Title","sort" : "yes"},
+            "theme" : {"label" : "Theme","sort" : "yes"},
+            "age_group" : {"label" : "Age Group","sort" : "yes"},
+            "date_added" : {"label" : "Date Added","sort" : "yes"}
+        };
+        
+        var content = "";
+        var heading = Util._processHeader(fieldAr,"resourcesForm","resources",data.sort,data.sort_by,"Resource._handle");
+        content += heading;
+        
+        $.each(data.resources,function(i,value) {
+            content += "<tr>";
+            var partner = (typeof value.partner !== "undefined") ? value.partner.organization_name : "";
+            content += "<td>"+partner+"</td>";
+            var volunteer = (typeof value.volunteer !== "undefined") ? [value.volunteer.first_name,value.volunteer.last_name].join(" ") : "";
+            content += "<td>"+volunteer+"</td>";
+            content += "<td>"+value.title+"</td>";
+            content += "<td>"+value.theme+"</td>";
+            content += "<td>"+value.age_group+"</td>";
+            content += "<td>"+Util._formatDate(value.date_added)+"</td>";
+            content += "</tr>";
+        });
+        var paging = Util._createPagination(data.current_page,data.total_page,'resources','resourcesForm','Resource._handle');
+        content += '<tr><td colspan="6">'+paging+'</td></tr>';
+        $("#resources table").html(content);
+    }
+};
+
+var SummaryView = {
+    _handlePartner : function(data,extraData) {
+        var tableStart = '<div class="row">';
+        tableStart += '<div class="col-xs-12">';
+        tableStart += '<div class="box"><div class="box-header">';
+        
+        var applicationListing = '<h3 class="box-title">Applications</h3></div>';
+        applicationListing += '<div class="box-body table-responsive no-padding"><table class="table table-hover"><tbody><tr><th>Volunteer</th><th>Application Statuss</th><th>Start Date</th><th>End Date</th><th>Position</th></tr>';
+        
+        if(typeof data.application.total !== "undefined" && data.application.total > 0) {
+            $.each(data.application,function(i,value) {
+                if(typeof value !== "number") {
+                    applicationListing += "<tr>";
+                    applicationListing += "<td>"+[value.first_name,value.last_name].join(" ")+"</td>";
+                    applicationListing += "<td>"+Util._applicationStatus(value.status)+"</td>";
+                    applicationListing += "<td>"+Util._formatDate(value.start_date)+"</td>";
+                    applicationListing += "<td>"+Util._formatDate(value.end_date)+"</td>";
+                    applicationListing += "<td>"+value.position+"</td>";
+                    applicationListing += '</tr>';
+                }
+            });
+            if(data.application.total > 10) {
+                applicationListing += "<tr><td colspan='5'><a href='/admin/partner/application/"+data.id+"'>Go to list("+data.application.total+")&raquo;</a></td></tr>";
+            }
+        }else {
+            applicationListing += '<tr><td colspan="2">No record to show</td></tr>';
+        }
+        
+        var reviewListing = '<h3 class="box-title">Partner Reviews</h3></div>';
+        reviewListing += '<div class="box-body table-responsive no-padding"><table class="table table-hover"><tbody><tr><th>Overall Experience Rating</th><th>Made a Difference Rating</th><th>Organization and Communication Rating</th><th>Title</th></tr>';
+        
+        if(typeof data.reviews.total !== "undefined" && data.reviews.total > 0) {
+            $.each(data.reviews,function(i,value) {
+                if(typeof value !== "number") {
+                    reviewListing += "<tr>";
+                    reviewListing += "<td>"+value.rating_1+"</td>";
+                    reviewListing += "<td>"+value.rating_2+"</td>";
+                    reviewListing += "<td>"+value.rating_3+"</td>";
+                    reviewListing += "<td>"+value.title+"</td>";
+                    reviewListing += '</tr>';
+                }
+            });
+            if(data.reviews.total > 10) {
+                reviewListing += "<tr><td colspan='5'><a href='javascript:void(0)'>Go to list("+data.reviews.total+")&raquo;</a></td></tr>";
+            }
+        }else {
+            reviewListing += '<tr><td colspan="4">No record to show</td></tr>';
+        }
+        
+        var campaignsListing = '<h3 class="box-title">Funding Campaigns</h3></div>';
+        campaignsListing += '<div class="box-body table-responsive no-padding"><table class="table table-hover"><tbody><tr><th>Title</th><th>Slug</th><th>Campaign amount</th></tr>';
+        
+        if(typeof data.campaigns.total !== "undefined" && data.campaigns.total > 0) {
+            $.each(data.campaigns,function(i,value) {
+                if(typeof value !== "number") {
+                    campaignsListing += "<tr>";
+                    campaignsListing += "<td>"+value.title+"</td>";
+                    campaignsListing += "<td>"+value.slug+"</td>";
+                    campaignsListing += "<td>"+value.campaign+"</td>";
+                    campaignsListing += '</tr>';
+                }
+            });
+            if(data.campaigns.total > 10) {
+                campaignsListing += "<tr><td colspan='5'><a href='javascript:void(0)'>Go to list("+data.campaigns.total+")&raquo;</a></td></tr>";
+            }
+        }else {
+            campaignsListing += '<tr><td colspan="3">No record to show</td></tr>';
+        }
+        
+        var incomingDonation = '<h3 class="box-title">Incoming Donations</h3></div>';
+        incomingDonation += '<div class="box-body table-responsive no-padding"><table class="table table-hover"><tbody><tr><th>First Name</th><th>Last Name</th><th>Amount Donated</th><th>Campaign</th><th>Donation Date</th></tr>';
+        
+        if(typeof data.transactions.total !== "undefined" && data.transactions.total > 0) {
+            $.each(data.transactions,function(i,value) {
+                if(typeof value !== "number") {
+                    incomingDonation += "<tr>";
+                    incomingDonation += "<td>"+value.first_name+"</td>";
+                    incomingDonation += "<td>"+value.last_name+"</td>";
+                    incomingDonation += "<td>"+value.amount+"</td>";
+                    incomingDonation += "<td>"+value.title+"</td>";
+                    incomingDonation += "<td>"+Util._formatDate(value.date_added)+"</td>";
+                    incomingDonation += '</tr>';
+                }
+            });
+            if(data.transactions.total > 10) {
+                incomingDonation += "<tr><td colspan='5'><a href='javascript:void(0)'>Go to list("+data.transactions.total+")&raquo;</a></td></tr>";
+            }
+        }else {
+            incomingDonation += '<tr><td colspan="3">No record to show</td></tr>';
+        }
+        
+        var expense = '<h3 class="box-title">Partner Expenses</h3></div>';
+        expense += '<div class="box-body table-responsive no-padding"><table class="table table-hover"><tbody><tr><th>Title</th><th>Category</th><th>Amount Donated</th></tr>';
+        
+        if(typeof data.expense.total !== "undefined" && data.expense.total > 0) {
+            $.each(data.expense,function(i,value) {
+                if(typeof value !== "number") {
+                    expense += "<tr>";
+                    expense += "<td>"+value.title+"</td>";
+                    expense += "<td>"+value.category+"</td>";
+                    expense += "<td>"+value.amount+"</td>";
+                    expense += '</tr>';
+                }
+            });
+            if(data.expense.total > 10) {
+                expense += "<tr><td colspan='5'><a href='javascript:void(0)'>Go to list("+data.expense.total+")&raquo;</a></td></tr>";
+            }
+        }else {
+            expense += '<tr><td colspan="3">No record to show</td></tr>';
+        }
+        
+        var tableEnd = '</tbody></table>';
+        tableEnd += '</div></div></div></div>';
+        
+        var content = tableStart + applicationListing + tableEnd;
+        content += tableStart + reviewListing + tableEnd;
+        content += tableStart + campaignsListing + tableEnd;
+        content += tableStart + incomingDonation + tableEnd;
+        content += tableStart + expense + tableEnd;
+        $("#partnerInfo").html(content);
+    }
+};
+
+var Partner = {
+    _application : function(data,extraData) {
+        var fieldAr = {
+            "volunteers.first_name" : {"label":"Volunteer","sort":"yes"},
+            "partners.organization_name" : {"label":"Partner","sort":"yes"},
+            "start_date" : {"label": "Start Date","sort":"yes"},
+            "end_date" : {"label":"End Date","sort":"yes"},
+            "status" : {"label": "Status","sort":"no"},
+            "datecreated" : {"label":"Date Added","sort":"yes"},
+            "action" : {"label" : "Action","sort":"no"}
+        };
+        var content = "";
+        var headerCon = Util._processHeader(fieldAr,"volunteerApplicationForm","partners/"+data.id+"/applications",data.sort,data.sort_by,'Partner._application');
+        content += headerCon;
+        $.each(data.applications,function(i,value){
+            content += "<tr>";
+            content += '<td>'+value.vname+'</td>';
+            content += '<td>'+value.organization_name+'</td>';
+            content += '<td>'+Util._formatDate(value.start_date)+'</td>';
+            content += '<td>'+Util._formatDate(value.end_date)+'</td>';
+            content += '<td>'+Util._applicationStatus(value.status)+'</td>';
+            content += '<td>'+Util._formatDate(value.datecreated)+'</td>';
+            
+            content += '<td><a href="/admin/volunteerapplication/edit/'+value.id+'"><i class="fa fa-edit"></i></a></td>';
+            content += "</tr>";
+        });
+        var paging = Util._createPagination(data.current_page,data.total_page,"partners/"+data.id+"/applications",'volunteerApplicationForm','Partner._application');
+        content += '<tr><td colspan="7">'+paging+'</td></tr>';
+        $("#volunteerApplicationLisiting").find("table").html(content);
     }
 };
 
